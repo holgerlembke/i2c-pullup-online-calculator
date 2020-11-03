@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="de">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="musictohear" content="fee: zigarren im zeppelin">
+      <title>i2c Pullup Resistor Online Calculator</title>
+      <style>
+         body {
+         font-family: Verdana, sans-serif;
+         }
+         datalist {
+         display: block;
+         }
+         .inputdings {
+         display: grid;
+         grid-template-columns: repeat(4, min-content);
+         grid-template-rows: auto;
+         }
+         .inputdings label, .addendumdings label {
+         white-space: nowrap;
+         margin-right: 5px;
+         }
+         .inputdings div.dim, .addendumdings div.dim {
+         white-space: nowrap;
+         margin-left: 5px;
+         }
+         .inputdings div.comment {
+         font-family: Times, serif;
+         white-space: nowrap;
+         margin-left: 10px;
+         }
+         .inputdings div.comment .grid {
+         display: grid;
+         grid-template-columns: repeat(3, min-content);
+         grid-template-rows: repeat(2, min-content);
+         }
+         .inputdings div.comment .grid div {
+         border: 1px solid black;
+         padding: 4px;
+         text-align: right;
+         }
+         .selector {
+         display: grid;
+         grid-template-columns: repeat(2, min-content);
+         grid-template-rows: 1.1em;
+         }
+         .data span {
+         background: lightgray;
+         cursor: pointer;
+         }
+         .error {
+         background: red;
+         padding: 5px;
+         }
+         .result {
+         }
+         .addendumdings {
+         display: grid;
+         grid-template-columns: repeat(5, min-content);
+         grid-template-rows: auto;
+         }
+         .addmorebuttons {
+         margin-top: 10px;
+         }
+         .addmorebuttons span {
+         background: lightgray;
+         cursor: pointer;
+         }
+         .addremove span {
+         background: lightgray;
+         cursor: pointer;
+         }
+         .addremove {
+         margin-left: 10px;
+         }
+         #baseresistor .addremove {
+         display: none;
+         }
+         .addedresistors .addremove span {
+         background: lightgray;
+         cursor: pointer;
+         }
+         .realworlddata {
+         display: grid;
+         grid-template-columns: repeat(2, min-content);
+         grid-template-rows: 1.1em;
+         }
+         .realworlddata div {
+         margin-left: 10px;
+         }
+         .headtitle {
+           color: blue;
+           margin-bottom: 0px;
+         }
+         .headresult {
+           color: lightblue;
+           margin-bottom: 0px;
+         }
+      </style>
+      <script>
+         function divvalue(thediv, theinput) {
+             theinput = document.getElementById(theinput);
+             var content = thediv.getAttribute("data-value");
+             theinput.value = content;
+         
+             calculate();
+         }
+         
+         function displayError(msg) {
+           document.getElementById('result').innerHTML = '<span class="error">' + msg + '</span>';
+         }
+         
+         function getValue(id, errormsg) {
+           var element = document.getElementById(id);
+           var val = Number(element.value);
+           if (isNaN(val)) {
+             displayError(errormsg);
+             return -1;
+           }
+           return val;
+         }
+         
+         function iolcheck() {
+           var vcc = getValue('vcc', "V<sub>cc</sub> is not a number");
+           if (vcc<=2.0) {
+             document.getElementById('iol').value="2";
+           } else {
+             document.getElementById('iol').value="3";
+           }
+         }
+         
+         var addcounter = 1;
+         
+         function calculateadditionalresistorsvalue() {
+            var r = 0, i;
+            for (i=0; i<addcounter; i++) {
+              var group = document.getElementById('resistors'+i);
+              var rr = group.getElementsByTagName('input');
+              if (rr.length==1) {
+                  var rvs = rr[0].value;
+                  var rv = Number(rvs);
+                  
+                  if ( (rv!=0) && (! isNaN(rv)) ) {
+                    if (r==0) {
+                      r = rv;
+                    } else {
+                      r = 1/(1/r+1/rv);
+                    }
+                   } else {
+                    document.getElementById('addendumresult').innerHTML =
+                      '<span class="error">'+
+                      'An additional resistor value is not a number.'+
+                      '</span>';
+                    return -1;
+                  }
+              }
+            }
+         
+            return r;
+         }        
+         
+         function calculate() {
+           var vcc = getValue('vcc', "V<sub>cc</sub> is not a number");
+           if (vcc<0) return;
+         
+           var tr = getValue('tr', "t<sub>r</sub> is not a number");
+           if (tr<0) return;
+         
+           var cb = getValue('cb', "C<sub>b</sub> is not a number");
+           if (cb<0) return;
+         
+           var vol = 0;
+           if (document.getElementById('vol').value=='0.2*Vcc') {
+             vol=0.2*vcc;
+           } else {
+             vol = getValue('vol', "V<sub>OL</sub> is not a number");
+             if (vol<0) return;
+           }
+         
+           var iol= getValue('iol', "I<sub>OL</sub> is not a number");
+           if (iol<0) return;
+         
+           var rp1 = (tr) / (0.8473 * cb * 0.001);
+           var rp2 = (vcc - vol) / (iol * 0.001);
+         
+           var rpmax = 0, rpmin = 0;
+           if (rp1<rp2) {
+             rpmax = rp2; rpmin = rp1;
+           } else {
+             rpmax = rp1; rpmin = rp2;
+           }
+         
+           var rpmaxs =
+             'R<sub>p</sub>(max) = ' + Math.round(rpmax * 100) / 100 + ' &Omega;';
+           var rpmins =
+             'R<sub>p</sub>(min) = ' + Math.round(rpmin * 100) / 100 + ' &Omega;';
+         
+           document.getElementById('result').innerHTML =
+             'We can select any available resistor value between '+rpmins+' and '+
+             rpmaxs+'.<br>The value of the pullup resistor can be selected based on the '+
+             'trade-off for the power consumption and speed.';
+             
+           // 1/rg = 1/r1 + 1/r2; --> 1/rg-1/r2 = 1/r1 --> r1 = 1/(1/rg-1/r2)
+           var addedresis = calculateadditionalresistorsvalue();
+           
+           if (addedresis>0) {
+               var addedresiss =
+                 'R<sub>Addsum</sub> = ' + Math.round(addedresis * 100) / 100 + ' &Omega;';
+             
+               var rpmaxadd = 1/(1/rpmax - 1/addedresis);
+               var rpminadd = 1/(1/rpmin - 1/addedresis);
+                 
+               var rpmaxadds =
+                 'R<sub>pAdd</sub>(max) = ' + Math.round(rpmaxadd * 100) / 100 + ' &Omega;';
+               var rpminadds =
+                 'R<sub>pAdd</sub>(min) = ' + Math.round(rpminadd * 100) / 100 + ' &Omega;';
+             
+               if (addedresis<rpmax) {
+                   if (addedresis<rpmin) {
+                     document.getElementById('addendumresult').innerHTML = 
+                        "Your already existing resistor sum "+addedresiss+" is to low!";
+                   } else {
+                     document.getElementById('addendumresult').innerHTML = "You could add "+rpminadds+" or more.";
+                   }
+               } else {
+                   document.getElementById('addendumresult').innerHTML =
+                     'Select the remaining resistor value between '+rpminadds+' and '+
+                     rpmaxadds+'.';
+               }
+           }
+         }
+         
+         function addresistor() {
+           var base = document.getElementById('baseresistor').innerHTML;
+           
+           base = base.replace("(0)","("+addcounter+")");          
+           
+           document.getElementById('addedresistors').innerHTML += 
+             "<div id='resistors"+addcounter+"'>"+base+"</div>";
+           addcounter++;
+         }
+         
+         function removeresistor(param) {
+            document.getElementById('resistors'+param).innerHTML="";
+         }
+         
+         window.onload=calculate;
+      </script>
+   </head>
+   <body>
+      <div class="calculator">
+         <h2 class="headtitle">i2c Pullup Resistor Online Calculator</h2>
+         <div class="inputdings">
+            <!-- Vcc -->
+            <label for="vcc">V<sub>cc</sub>:</label>
+            <div>
+               <input type="text" id="vcc" name="vcc" value="3.3" size="5"
+                  onChange="iolcheck(); calculate();" onKeyup="iolcheck(); calculate();">
+            </div>
+            <div class="dim">V</div>
+            <div class="comment">
+               <div>Supply rail voltage</div>
+               <div class="grid">
+                  <div class="data" onClick="divvalue(this, 'vcc'); iolcheck();" data-value="3.3"><span>3.3 V</span></div>
+                  <div class="data" onClick="divvalue(this, 'vcc'); iolcheck();" data-value="5.0"><span>5.0 V</span></div>
+               </div>
+            </div>
+            <!-- tr -->
+            <label for="vcc">t<sub>r</sub>:</label>
+            <div>
+               <input type="text" id="tr" name="tr" value="1000" size="5"
+                  onChange="calculate();" onKeyup="calculate();">
+            </div>
+            <div class="dim">ns</div>
+            <div class="comment">
+               <div>Maximal rise time of both SDA and SCL signals</div>
+               <div class="grid">
+                  <div>Standard Mode<br><small>f<sub>scl</sub> = 100 kHz</small></div>
+                  <div>Fast Mode<br><small>f<sub>scl</sub> = 400 kHz</small></div>
+                  <div>Fast Mode Plus<br><small>f<sub>scl</sub> = 1000 kHz</small></div>
+                  <div class="data" onClick="divvalue(this, 'tr')" data-value="1000"><span>1000 ns</span></div>
+                  <div class="data" onClick="divvalue(this, 'tr')" data-value="300"><span>300 ns</span></div>
+                  <div class="data" onClick="divvalue(this, 'tr')" data-value="120"><span>120 ns</span></div>
+               </div>
+            </div>
+            <!-- cb -->
+            <label for="cb">C<sub>b</sub>:</label>
+            <div>
+               <input type="text" id="cb" name="cb" value="400" size="5"
+                  onChange="calculate();" onKeyup="calculate();">
+            </div>
+            <div class="dim">pF</div>
+            <div class="comment">
+               <div>Maximal capacitive load for each bus line</div>
+               <div class="grid">
+                  <div>Standard Mode</div>
+                  <div>Fast Mode</div>
+                  <div>Fast Mode Plus</div>
+                  <div class="data" onClick="divvalue(this, 'cb')" data-value="400"><span>400 pF</span></div>
+                  <div class="data" onClick="divvalue(this, 'cb')" data-value="400"><span>400 pF</span></div>
+                  <div class="data" onClick="divvalue(this, 'cb')" data-value="550"><span>550 pF</span></div>
+               </div>
+               Some real world data: 
+               <div class="realworlddata">
+                  <div>FR4</div>
+                  <div>C ~ 0.7 pF/cm</div>
+                  <div></div>
+                  <div>C ~ 1.3 pF/cm at 50 &Omega;</div>
+                  <div>Coax</div>
+                  <div>C ~ 1 pF/cm at 50 &Omega;</div>
+                  <div>PCF8574</div>
+                  <div>C &lt; 7 pF/pin</div>
+                  <div>ATTINY85</div>
+                  <div>C = 14 pF/pin</div>
+                  <div>ATMEGA328p</div>
+                  <div>C = 10 pF/pin</div>
+               </div>
+            </div>
+            <!--
+               -->
+            <!-- Vol -->
+            <label for="vol">V<sub>OL</sub>:</label>
+            <div>
+               <input type="text" id="vol" name="vol" value="0.4" size="5"
+                  onChange="calculate();" onKeyup="calculate();">
+            </div>
+            <div class="dim">V</div>
+            <div class="comment">
+               <div>The V<sub>OL</sub> level can be read as a valid logical</div>
+               <div>low by the input buffers of an IC.</div>
+               <div class="grid">
+                  <div>Standard Mode</div>
+                  <div>Fast Mode</div>
+                  <div>Fast Mode Plus</div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value="0.4"><span>0.4 V</span></div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value="0.4"><span>0.4 V</span></div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value="0.4"><span>0.4 V</span></div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value=""><span></span></div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value="0.2*Vcc"><span>0.2 * V<sub>cc</sub></span></div>
+                  <div class="data" onClick="divvalue(this, 'vol')" data-value="0.2*Vcc"><span>0.2 * V<sub>cc</sub></span></div>
+               </div>
+            </div>
+            <!-- Iol -->
+            <label for="vol">I<sub>OL</sub>:</label>
+            <div>
+               <input type="text" id="iol" name="iol" value="3" size="5"
+                  onChange="calculate();" onKeyup="calculate();">
+            </div>
+            <div class="dim">mA</div>
+            <div class="comment">
+               <div>I<sub>OL</sub> is defined as V<sub>cc</sub> &gt; 2 V: 3 mA, V<sub>cc</sub> &le; 2 V: 2 mA</div>
+            </div>
+         </div>
+         <h2 class="headresult">Results</h2>
+         <div class="result">
+            <div id="result">Gra!!!</div>
+         </div>
+         <hr>
+         <h2 class="headtitle">include existing Resistors</h2>
+         <div id="resistors0">
+            <div id="baseresistor">
+               <div class="addendumdings">
+                  <label for="vol">R:</label>
+                  <div>
+                     <input type="text" value="10000" size="6"
+                        onChange="calculate();" onKeyup="calculate();">
+                  </div>
+                  <div class="dim">&Omega;</div>
+                  <div class="addremove"><span onClick="removeresistor(0);">Remove</span></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="addedresistors">
+      </div>
+      <div class="addmorebuttons">
+         <span onClick="addresistor(); calculate();">Add another resistor</span>
+      </div>
+      <h2 class="headresult">Results</h2>
+      <div class="addendumresult">
+         <div id="addendumresult">Gra!!!</div>
+      </div>
+      <hr>
+      <div class="reference">
+         <h3>References</h3>
+         <ul>
+            <li>
+               <a
+                  href="https://www.ti.com/lit/an/slva689/slva689.pdf?ts=1604288051277&ref_url=https%253A%252F%252Fwww.google.com%252F">Texas Instruments<br>
+               Application Report SLVA689 – February 2015<br>
+               I2C Bus Pullup Resistor Calculation</a>
+            </li>
+            <li>
+               <a
+                  href="https://www.nxp.com/docs/en/user-guide/UM10204.pdf">
+               NXP Semiconductors<br>
+               UM10204<br>
+               I2C-bus specification and user manual<br>
+               Rev. 6 — 4 April 2014 User manual</a>
+            </li>
+         </ul>
+      </div>
+      <div class="author">
+         <h4>Author</h4>
+         Holger Lembke
+      </div>
+   </body>
+</html>
