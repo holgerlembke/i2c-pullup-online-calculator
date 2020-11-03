@@ -231,22 +231,11 @@
          }
          
          function addresistor() {
-           /*
-           var base = document.getElementById('baseresistor').innerHTML;
-           
-           base = base.replace("(0)","("+addcounter+")");          
-           
-           document.getElementById('addedresistors').innerHTML += 
-             "<div id='resistors"+addcounter+"'>"+base+"</div>";
-           addcounter++;
-           */
-
            var base = document.getElementById('baseresistor');
            
-           var bases = "<div id='resistors"+addcounter+"'>"+
-                       base.innerHTML.replace("(0)","("+addcounter+")")+
-                       "</div>";
+           var bases = base.innerHTML.replace("(0)","("+addcounter+")");
            var divnode = document.createElement("DIV");
+           divnode.id = "resistors"+addcounter;
            divnode.innerHTML = bases;
 
            document.getElementById('addedresistors').appendChild(divnode);
