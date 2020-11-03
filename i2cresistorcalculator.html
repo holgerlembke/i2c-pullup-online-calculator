@@ -224,19 +224,33 @@
                    }
                } else {
                    document.getElementById('addendumresult').innerHTML =
-                     'Select the remaining resistor value between '+rpminadds+' and '+
+                     'Existing resistor sum is '+addedresiss+'. Select the remaining resistor value between '+rpminadds+' and '+
                      rpmaxadds+'.';
                }
            }
          }
          
          function addresistor() {
+           /*
            var base = document.getElementById('baseresistor').innerHTML;
            
            base = base.replace("(0)","("+addcounter+")");          
            
            document.getElementById('addedresistors').innerHTML += 
              "<div id='resistors"+addcounter+"'>"+base+"</div>";
+           addcounter++;
+           */
+
+           var base = document.getElementById('baseresistor');
+           
+           var bases = "<div id='resistors"+addcounter+"'>"+
+                       base.innerHTML.replace("(0)","("+addcounter+")")+
+                       "</div>";
+           var divnode = document.createElement("DIV");
+           divnode.innerHTML = bases;
+
+           document.getElementById('addedresistors').appendChild(divnode);
+           
            addcounter++;
          }
          
